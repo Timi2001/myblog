@@ -95,18 +95,33 @@ export class AnalyticsDocumentManager {
   ): Promise<boolean> {
     const docRef = doc(db, 'analytics_realtime_visitors', sessionId);
     
-    return await ensureDocumentExists(docRef, {
+    // Filter out undefined values to prevent Firestore errors
+    const cleanData: any = {
       sessionId,
-      userId: initialData.userId,
-      currentPage: initialData.currentPage,
+      currentPage: initialData.currentPage || '',
       lastSeen: serverTimestamp(),
-      country: initialData.country,
-      device: initialData.device,
-      browser: initialData.browser,
-      referrer: initialData.referrer,
       pagesViewed: 0,
       sessionStart: serverTimestamp(),
-    });
+    };
+
+    // Only add optional fields if they have valid values
+    if (initialData.userId && initialData.userId !== undefined) {
+      cleanData.userId = initialData.userId;
+    }
+    if (initialData.country && initialData.country !== undefined) {
+      cleanData.country = initialData.country;
+    }
+    if (initialData.device && initialData.device !== undefined) {
+      cleanData.device = initialData.device;
+    }
+    if (initialData.browser && initialData.browser !== undefined) {
+      cleanData.browser = initialData.browser;
+    }
+    if (initialData.referrer && initialData.referrer !== undefined) {
+      cleanData.referrer = initialData.referrer;
+    }
+    
+    return await ensureDocumentExists(docRef, cleanData);
   }
 
   /**
