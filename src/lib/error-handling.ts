@@ -1,4 +1,5 @@
 // Error handling utilities for production
+import React from 'react';
 
 export interface AppError extends Error {
   code?: string;
