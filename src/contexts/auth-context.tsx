@@ -39,46 +39,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let mounted = true;
     
-    // Set a timeout to prevent infinite loading
+    // Much shorter timeout - 3 seconds
     const loadingTimeout = setTimeout(() => {
       if (mounted) {
         console.warn('Auth loading timeout - setting loading to false');
         setLoading(false);
       }
-    }, 10000); // 10 second timeout
+    }, 3000);
 
-    try {
-      const unsubscribe = onAuthStateChange(async (user) => {
-        if (!mounted) return;
-        
-        console.log('Auth state changed:', user ? 'User logged in' : 'User logged out');
-        setUser(user);
-        setLoading(false);
-        
-        // Clear the timeout since auth state resolved
-        clearTimeout(loadingTimeout);
-        
-        if (user) {
-          await refreshToken();
-        } else {
-          setToken(null);
-          // Clear token cookie
-          document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-        }
-      });
-
-      return () => {
-        mounted = false;
-        clearTimeout(loadingTimeout);
-        unsubscribe();
-      };
-    } catch (error) {
-      console.error('Error setting up auth listener:', error);
-      if (mounted) {
-        setLoading(false);
-      }
+    // Simplified auth listener
+    const unsubscribe = onAuthStateChange((user) => {
+      if (!mounted) return;
+      
+      console.log('Auth state changed:', user ? `User logged in: ${user.email}` : 'User logged out');
+      setUser(user);
+      setLoading(false);
       clearTimeout(loadingTimeout);
-    }
+      
+      if (user) {
+        refreshToken().catch(console.error);
+      } else {
+        setToken(null);
+        document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+      }
+    });
+
+    return () => {
+      mounted = false;
+      clearTimeout(loadingTimeout);
+      unsubscribe();
+    };
   }, []);
 
   // Refresh token every 50 minutes (Firebase tokens expire after 1 hour)
