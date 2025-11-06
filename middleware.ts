@@ -3,8 +3,18 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Only protect admin routes (except the login page itself)
-  if (pathname.startsWith('/admin') && pathname !== '/admin') {
+  // Define admin routes that don't require authentication
+  const publicAdminRoutes = [
+    '/admin',
+    '/admin/setup', 
+    '/admin/simple-login',
+    '/admin/bypass',
+    '/admin/simple-test',
+    '/admin/debug'
+  ];
+
+  // Only protect admin routes that require authentication
+  if (pathname.startsWith('/admin') && !publicAdminRoutes.includes(pathname)) {
     try {
       // Get the authorization token from cookies or headers
       const authToken = request.cookies.get('auth-token')?.value || 
