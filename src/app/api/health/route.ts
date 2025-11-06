@@ -14,9 +14,9 @@ export async function GET(request: NextRequest) {
       environment: process.env.NODE_ENV || 'development',
       uptime: process.uptime(),
       checks: {
-        database: 'unknown',
-        memory: 'unknown',
-        disk: 'unknown',
+        database: 'unknown' as string,
+        memory: 'unknown' as string | { status: string; used: string; total: string; percentage: number },
+        disk: 'unknown' as string,
       },
     };
 
