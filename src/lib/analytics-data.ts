@@ -13,8 +13,10 @@ import {
   getDocs,
   getDoc,
   startAfter,
-  Timestamp
+  Timestamp,
+  writeBatch
 } from 'firebase/firestore';
+import { AnalyticsDocumentManager } from './analytics-utils';
 
 // Analytics data interfaces
 export interface PageView {
@@ -93,6 +95,9 @@ export class AnalyticsDataService {
   // Track article view
   async trackArticleView(articleId: string, timeSpent?: number): Promise<void> {
     try {
+      // Ensure the document exists before updating
+      await AnalyticsDocumentManager.ensureLegacyArticleAnalyticsExists(articleId);
+      
       const articleDocRef = doc(this.articleAnalyticsCollection, articleId);
       const articleDoc = await getDoc(articleDocRef);
 
@@ -111,17 +116,6 @@ export class AnalyticsDataService {
         }
 
         await updateDoc(articleDocRef, updateData);
-      } else {
-        await updateDoc(articleDocRef, {
-          articleId,
-          views: 1,
-          uniqueViews: 1,
-          averageTimeSpent: timeSpent || 0,
-          bounceRate: 0,
-          socialShares: 0,
-          comments: 0,
-          lastUpdated: serverTimestamp(),
-        });
       }
     } catch (error) {
       console.error('Error tracking article view:', error);
@@ -370,6 +364,10 @@ export class AnalyticsDataService {
   private async updateDailySummary(page: string): Promise<void> {
     try {
       const today = new Date().toISOString().split('T')[0];
+      
+      // Ensure the daily summary document exists
+      await AnalyticsDocumentManager.ensureDailySummaryExists(today);
+      
       const summaryDocRef = doc(db, 'analytics_daily_summary', today);
       
       await updateDoc(summaryDocRef, {
@@ -378,20 +376,71 @@ export class AnalyticsDataService {
         lastUpdated: serverTimestamp(),
       });
     } catch (error) {
-      // Document might not exist, create it
-      try {
-        const today = new Date().toISOString().split('T')[0];
-        const summaryDocRef = doc(db, 'analytics_daily_summary', today);
+      console.error('Error updating daily summary:', error);
+    }
+  }
+
+  // Batch update daily summaries for multiple operations
+  async batchUpdateDailySummary(operations: Array<{
+    date: string;
+    page: string;
+    sessionId?: string;
+  }>): Promise<void> {
+    try {
+      const batch = writeBatch(db);
+      const summaryUpdates = new Map<string, {
+        totalViews: number;
+        pages: Map<string, number>;
+        uniqueVisitors: Set<string>;
+      }>();
+
+      // Group operations by date
+      for (const operation of operations) {
+        if (!summaryUpdates.has(operation.date)) {
+          summaryUpdates.set(operation.date, {
+            totalViews: 0,
+            pages: new Map(),
+            uniqueVisitors: new Set(),
+          });
+        }
+
+        const summary = summaryUpdates.get(operation.date)!;
+        summary.totalViews++;
         
-        await updateDoc(summaryDocRef, {
-          [`pages.${page.replace(/[.#$/[\]]/g, '_')}`]: 1,
-          totalViews: 1,
-          date: today,
-          lastUpdated: serverTimestamp(),
-        });
-      } catch (createError) {
-        console.error('Error creating daily summary:', createError);
+        const pageKey = operation.page.replace(/[.#$/[\]]/g, '_');
+        summary.pages.set(pageKey, (summary.pages.get(pageKey) || 0) + 1);
+        
+        if (operation.sessionId) {
+          summary.uniqueVisitors.add(operation.sessionId);
+        }
       }
+
+      // Ensure all daily summary documents exist
+      for (const date of summaryUpdates.keys()) {
+        await AnalyticsDocumentManager.ensureDailySummaryExists(date);
+      }
+
+      // Apply batch updates
+      for (const [date, summary] of summaryUpdates) {
+        const summaryDocRef = doc(db, 'analytics_daily_summary', date);
+        
+        const updateData: any = {
+          totalViews: increment(summary.totalViews),
+          uniqueVisitors: increment(summary.uniqueVisitors.size),
+          lastUpdated: serverTimestamp(),
+        };
+
+        // Add page-specific increments
+        for (const [pageKey, count] of summary.pages) {
+          updateData[`pages.${pageKey}`] = increment(count);
+        }
+
+        batch.update(summaryDocRef, updateData);
+      }
+
+      await batch.commit();
+    } catch (error) {
+      console.error('Error batch updating daily summaries:', error);
     }
   }
 }

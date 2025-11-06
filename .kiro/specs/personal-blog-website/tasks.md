@@ -403,7 +403,8 @@
     - Verify all features work end-to-end
     - _Requirements: 3.1, 9.1_
   
-  - [x] 13.3 Environment configuration and security
+  - [ ] 13.3 Environment configuration and security
+
 
     - Set up production environment variables
     - Configure Firebase security rules for production

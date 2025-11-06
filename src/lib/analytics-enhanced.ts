@@ -17,6 +17,7 @@ import {
   onSnapshot,
   writeBatch
 } from 'firebase/firestore';
+import { AnalyticsDocumentManager } from './analytics-utils';
 
 // Enhanced analytics interfaces
 export interface PageViewEvent {
@@ -156,37 +157,34 @@ export class EnhancedAnalyticsService {
   // Update real-time visitor data
   async updateRealTimeVisitor(data: Omit<PageViewEvent, 'id' | 'timestamp'>): Promise<void> {
     try {
-      const visitorQuery = query(
-        this.realTimeVisitorsCollection,
-        where('sessionId', '==', data.sessionId),
-        limit(1)
-      );
+      // Use sessionId as document ID for consistent access
+      const visitorDocRef = doc(this.realTimeVisitorsCollection, data.sessionId);
       
-      const visitorSnapshot = await getDocs(visitorQuery);
+      // Ensure the document exists with proper initialization
+      const wasCreated = await AnalyticsDocumentManager.ensureRealTimeVisitorExists(data.sessionId, {
+        userId: data.userId,
+        currentPage: data.page,
+        country: data.country,
+        device: data.device,
+        browser: data.browser,
+        referrer: data.referrer,
+      });
       
-      if (visitorSnapshot.empty) {
-        // Create new real-time visitor
-        await addDoc(this.realTimeVisitorsCollection, {
-          sessionId: data.sessionId,
-          userId: data.userId,
-          currentPage: data.page,
-          lastSeen: serverTimestamp(),
-          country: data.country,
-          device: data.device,
-          browser: data.browser,
-          referrer: data.referrer,
-          pagesViewed: 1,
-          sessionStart: serverTimestamp(),
-        });
+      // Update the visitor data
+      const updateData: any = {
+        currentPage: data.page,
+        lastSeen: serverTimestamp(),
+      };
+      
+      // Only increment page views if this is an existing session
+      if (!wasCreated) {
+        updateData.pagesViewed = increment(1);
       } else {
-        // Update existing visitor
-        const visitorDoc = visitorSnapshot.docs[0];
-        await updateDoc(visitorDoc.ref, {
-          currentPage: data.page,
-          lastSeen: serverTimestamp(),
-          pagesViewed: increment(1),
-        });
+        // For new sessions, set initial page view count
+        updateData.pagesViewed = 1;
       }
+      
+      await updateDoc(visitorDocRef, updateData);
     } catch (error) {
       console.error('Error updating real-time visitor:', error);
     }
@@ -195,6 +193,9 @@ export class EnhancedAnalyticsService {
   // Update article performance metrics
   async updateArticlePerformance(articleId: string, timeSpent?: number): Promise<void> {
     try {
+      // Ensure the document exists before updating
+      await AnalyticsDocumentManager.ensureArticlePerformanceExists(articleId);
+      
       const articleDocRef = doc(this.articlePerformanceCollection, articleId);
       const articleDoc = await getDoc(articleDocRef);
 
@@ -213,20 +214,6 @@ export class EnhancedAnalyticsService {
         }
 
         await updateDoc(articleDocRef, updateData);
-      } else {
-        // Create new article performance record
-        await updateDoc(articleDocRef, {
-          articleId,
-          views: 1,
-          uniqueViews: 1,
-          averageTimeSpent: timeSpent || 0,
-          bounceRate: 0,
-          socialShares: 0,
-          comments: 0,
-          lastViewed: serverTimestamp(),
-          trending: false,
-          trendingScore: 0,
-        });
       }
 
       // Update trending status
@@ -253,6 +240,9 @@ export class EnhancedAnalyticsService {
       const trendingScore = this.calculateTrendingScore(views24h, views7d);
       const isTrending = trendingScore > 10; // Threshold for trending
 
+      // Ensure trending content document exists before updating
+      await AnalyticsDocumentManager.ensureTrendingContentExists(articleId);
+
       // Update trending collection
       const trendingDocRef = doc(this.trendingContentCollection, articleId);
       await updateDoc(trendingDocRef, {
@@ -264,6 +254,9 @@ export class EnhancedAnalyticsService {
         trendingRank: 0, // Will be calculated in batch update
         lastUpdated: serverTimestamp(),
       });
+
+      // Ensure article performance document exists before updating trending status
+      await AnalyticsDocumentManager.ensureArticlePerformanceExists(articleId);
 
       // Update article performance trending status
       const articlePerfRef = doc(this.articlePerformanceCollection, articleId);
@@ -559,6 +552,52 @@ export class EnhancedAnalyticsService {
       await batch.commit();
     } catch (error) {
       console.error('Error cleaning up real-time data:', error);
+    }
+  }
+
+  // Batch update multiple analytics operations for consistency
+  async batchUpdateAnalytics(operations: Array<{
+    type: 'pageView' | 'articlePerformance' | 'realTimeVisitor';
+    data: any;
+  }>): Promise<void> {
+    try {
+      const batch = writeBatch(db);
+      
+      for (const operation of operations) {
+        switch (operation.type) {
+          case 'pageView':
+            const pageViewRef = doc(this.pageViewsCollection);
+            batch.set(pageViewRef, {
+              ...operation.data,
+              timestamp: serverTimestamp(),
+            });
+            break;
+            
+          case 'articlePerformance':
+            const { articleId, ...perfData } = operation.data;
+            await AnalyticsDocumentManager.ensureArticlePerformanceExists(articleId);
+            const articleRef = doc(this.articlePerformanceCollection, articleId);
+            batch.update(articleRef, {
+              ...perfData,
+              lastViewed: serverTimestamp(),
+            });
+            break;
+            
+          case 'realTimeVisitor':
+            const { sessionId, ...visitorData } = operation.data;
+            await AnalyticsDocumentManager.ensureRealTimeVisitorExists(sessionId, visitorData);
+            const visitorRef = doc(this.realTimeVisitorsCollection, sessionId);
+            batch.update(visitorRef, {
+              ...visitorData,
+              lastSeen: serverTimestamp(),
+            });
+            break;
+        }
+      }
+      
+      await batch.commit();
+    } catch (error) {
+      console.error('Error batch updating analytics:', error);
     }
   }
 
