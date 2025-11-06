@@ -211,26 +211,26 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
     
-    // Additional collections used by the analytics code
+    // Additional collections used by the analytics code - fully permissive for debugging
     match /analytics_daily_summary/{summaryId} {
-      allow read: if isAdmin();
-      allow create: if true; // Allow public writes for analytics
-      allow update: if true; // Allow public writes for analytics
-      allow delete: if isAdmin();
+      allow read, write: if true; // Fully permissive for debugging
     }
     
-    // Legacy analytics collections - maintained for backward compatibility
+    match /analytics_sessions/{sessionId} {
+      allow read, write: if true; // Fully permissive for debugging
+    }
+    
+    match /analytics_articles/{articleId} {
+      allow read, write: if true; // Fully permissive for debugging
+    }
+    
+    // Legacy analytics collections - temporarily fully permissive for debugging
     match /analytics_pageviews/{viewId} {
-      allow read: if isAdmin();
-      allow create: if true; // Temporarily allow all writes for debugging
-      allow update, delete: if false;
+      allow read, write: if true; // Fully permissive for debugging
     }
     
     match /analytics_realtime_visitors/{visitorId} {
-      allow read: if isAdmin();
-      allow create: if true; // Temporarily allow all writes for debugging
-      allow update: if true; // Temporarily allow all writes for debugging
-      allow delete: if isAdmin();
+      allow read, write: if true; // Fully permissive for debugging
     }
     
     match /analytics_article_performance/{articleId} {
