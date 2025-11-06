@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/contexts/theme-context";
 import { WebsiteStructuredData, OrganizationStructuredData } from "@/components/seo/structured-data";
 import { generateSiteMetadata } from "@/lib/metadata";
 import { AnalyticsProvider } from "@/components/analytics/analytics-provider";
+import { ConditionalLayout } from "@/components/layout/conditional-layout";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -82,11 +83,9 @@ export default function RootLayout({
       <body className={`${inter.variable} font-sans antialiased min-h-screen flex flex-col`}>
         <ThemeProvider>
           <AnalyticsProvider>
-            <Header />
-            <main className="flex-1">
+            <ConditionalLayout>
               {children}
-            </main>
-            <Footer />
+            </ConditionalLayout>
           </AnalyticsProvider>
         </ThemeProvider>
       </body>
