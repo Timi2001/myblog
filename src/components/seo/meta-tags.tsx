@@ -156,9 +156,8 @@ export function MetaTags({
       <link rel="dns-prefetch" href="//fonts.gstatic.com" />
       <link rel="dns-prefetch" href="//www.google-analytics.com" />
       
-      {/* Security Headers */}
+      {/* Security Headers - Note: X-Frame-Options is set as HTTP header in next.config.ts */}
       <meta httpEquiv="X-Content-Type-Options" content="nosniff" />
-      <meta httpEquiv="X-Frame-Options" content="DENY" />
       <meta httpEquiv="X-XSS-Protection" content="1; mode=block" />
       <meta name="referrer" content="strict-origin-when-cross-origin" />
       
