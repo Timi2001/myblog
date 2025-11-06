@@ -161,34 +161,40 @@ service cloud.firestore {
       allow update, delete: if false;
     }
     
-    // Enhanced analytics collections
+    // Enhanced analytics collections - Allow public writes for tracking
     match /analytics_pageviews/{viewId} {
       allow read: if isAdmin();
-      allow create: if request.resource.data.timestamp == request.time;
+      allow create: if true; // Allow public page view tracking
       allow update, delete: if false;
     }
     
     match /analytics_realtime_visitors/{visitorId} {
       allow read: if isAdmin();
-      allow create, update: if request.resource.data.sessionId is string;
+      allow create, update: if true; // Allow public real-time visitor tracking
       allow delete: if isAdmin();
     }
     
     match /analytics_article_performance/{articleId} {
       allow read: if isAdmin();
-      allow create, update: if request.resource.data.articleId is string;
+      allow create, update: if true; // Allow public article performance tracking
       allow delete: if false;
     }
     
     match /analytics_trending/{articleId} {
       allow read: if isAdmin();
-      allow create, update: if request.resource.data.articleId is string;
+      allow create, update: if true; // Allow public trending tracking
       allow delete: if false;
     }
     
     match /analytics_sessions/{sessionId} {
       allow read: if isAdmin();
-      allow create, update: if request.resource.data.sessionId is string;
+      allow create, update: if true; // Allow public session tracking
+      allow delete: if false;
+    }
+    
+    match /analytics_daily_summaries/{date} {
+      allow read: if isAdmin();
+      allow create, update: if true; // Allow public daily summary updates
       allow delete: if false;
     }
     
