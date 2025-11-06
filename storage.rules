@@ -1,0 +1,67 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+             request.auth.token.email != null &&
+             request.auth.token.email_verified == true;
+    }
+    
+    function isValidImageFile() {
+      return request.resource.contentType.matches('image/.*') &&
+             request.resource.size < 10 * 1024 * 1024; // 10MB limit
+    }
+    
+    function isValidDocumentFile() {
+      return request.resource.contentType.matches('(application/pdf|text/.*|application/msword|application/vnd.openxmlformats-officedocument.wordprocessingml.document)') &&
+             request.resource.size < 50 * 1024 * 1024; // 50MB limit
+    }
+    
+    // Public read access for all files (for blog content)
+    match /{allPaths=**} {
+      allow read: if true;
+    }
+    
+    // Article images (admin upload only)
+    match /articles/{articleId}/{fileName} {
+      allow write: if isAdmin() && isValidImageFile();
+      allow delete: if isAdmin();
+    }
+    
+    // Featured images (admin upload only)
+    match /featured/{fileName} {
+      allow write: if isAdmin() && isValidImageFile();
+      allow delete: if isAdmin();
+    }
+    
+    // Site branding assets (admin upload only)
+    match /branding/{fileName} {
+      allow write: if isAdmin() && (isValidImageFile() || fileName.matches('.*\\.(ico|svg)$'));
+      allow delete: if isAdmin();
+    }
+    
+    // Media library (admin upload only)
+    match /media/{year}/{month}/{fileName} {
+      allow write: if isAdmin() && (isValidImageFile() || isValidDocumentFile());
+      allow delete: if isAdmin();
+    }
+    
+    // Temporary uploads (admin only, auto-cleanup after 24 hours)
+    match /temp/{fileName} {
+      allow write: if isAdmin() && isValidImageFile();
+      allow delete: if isAdmin();
+    }
+    
+    // Deny all other access
+    match /{document=**} {
+      allow write: if false;
+    }
+  }
+}

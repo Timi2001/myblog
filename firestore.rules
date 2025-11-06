@@ -1,0 +1,200 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions for authentication and authorization
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+             request.auth.token.email != null &&
+             request.auth.token.email_verified == true;
+    }
+    
+    function isValidEmail(email) {
+      return email.matches('^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$');
+    }
+    
+    function isValidArticleData(data) {
+      return data.keys().hasAll(['title', 'slug', 'content', 'categoryId', 'status']) &&
+             data.title is string && data.title.size() > 0 &&
+             data.slug is string && data.slug.size() > 0 &&
+             data.content is string && data.content.size() > 0 &&
+             data.categoryId is string &&
+             data.status in ['draft', 'published', 'archived'] &&
+             data.tags is list &&
+             data.readingTime is number &&
+             data.viewCount is number;
+    }
+    
+    function isValidCategoryData(data) {
+      return data.keys().hasAll(['name', 'slug']) &&
+             data.name is string && data.name.size() > 0 &&
+             data.slug is string && data.slug.size() > 0;
+    }
+    
+    function isValidTagData(data) {
+      return data.keys().hasAll(['name', 'slug']) &&
+             data.name is string && data.name.size() > 0 &&
+             data.slug is string && data.slug.size() > 0;
+    }
+    
+    function isValidSubscriberData(data) {
+      return data.keys().hasAll(['email', 'status']) &&
+             isValidEmail(data.email) &&
+             data.status in ['active', 'unsubscribed'];
+    }
+    
+    // Articles collection
+    match /articles/{articleId} {
+      // Public read access for published articles
+      allow read: if resource.data.status == 'published';
+      
+      // Admin-only write access with data validation
+      allow create: if isAdmin() && 
+                       isValidArticleData(request.resource.data) &&
+                       request.resource.data.createdAt == request.time &&
+                       request.resource.data.updatedAt == request.time;
+      
+      allow update: if isAdmin() && 
+                       isValidArticleData(request.resource.data) &&
+                       request.resource.data.createdAt == resource.data.createdAt &&
+                       request.resource.data.updatedAt == request.time;
+      
+      allow delete: if isAdmin();
+      
+      // Comments subcollection
+      match /comments/{commentId} {
+        // Public read access for approved comments
+        allow read: if resource.data.status == 'approved';
+        
+        // Public create access with validation
+        allow create: if isValidEmail(request.resource.data.authorEmail) &&
+                         request.resource.data.content is string &&
+                         request.resource.data.content.size() > 0 &&
+                         request.resource.data.status == 'pending' &&
+                         request.resource.data.createdAt == request.time;
+        
+        // Admin-only update and delete
+        allow update, delete: if isAdmin();
+      }
+    }
+    
+    // Categories collection
+    match /categories/{categoryId} {
+      // Public read access
+      allow read: if true;
+      
+      // Admin-only write access with validation
+      allow create: if isAdmin() && 
+                       isValidCategoryData(request.resource.data) &&
+                       request.resource.data.createdAt == request.time;
+      
+      allow update: if isAdmin() && 
+                       isValidCategoryData(request.resource.data) &&
+                       request.resource.data.createdAt == resource.data.createdAt;
+      
+      allow delete: if isAdmin();
+    }
+    
+    // Tags collection
+    match /tags/{tagId} {
+      // Public read access
+      allow read: if true;
+      
+      // Admin-only write access with validation
+      allow create: if isAdmin() && 
+                       isValidTagData(request.resource.data) &&
+                       request.resource.data.createdAt == request.time;
+      
+      allow update: if isAdmin() && 
+                       isValidTagData(request.resource.data) &&
+                       request.resource.data.createdAt == resource.data.createdAt;
+      
+      allow delete: if isAdmin();
+    }
+    
+    // Subscribers collection
+    match /subscribers/{subscriberId} {
+      // No public read access (privacy protection)
+      allow read: if false;
+      
+      // Public create access for newsletter subscription with validation
+      allow create: if isValidSubscriberData(request.resource.data) &&
+                       request.resource.data.subscribedAt == request.time;
+      
+      // Allow users to unsubscribe themselves by email match
+      allow update: if request.resource.data.email == resource.data.email &&
+                       request.resource.data.status == 'unsubscribed' &&
+                       request.resource.data.subscribedAt == resource.data.subscribedAt;
+      
+      // Admin access for subscriber management
+      allow read, update, delete: if isAdmin();
+    }
+    
+    // Site configuration collection
+    match /siteConfig/{configId} {
+      // Public read access for theme and branding
+      allow read: if configId in ['theme', 'branding', 'layout', 'seo'];
+      
+      // Admin-only write access
+      allow create, update, delete: if isAdmin();
+    }
+    
+    // Analytics collections
+    match /pageViews/{viewId} {
+      // No public read access
+      allow read: if false;
+      
+      // Public create access for tracking page views
+      allow create: if request.resource.data.timestamp == request.time &&
+                       request.resource.data.page is string &&
+                       request.resource.data.sessionId is string;
+      
+      // Admin read access for analytics
+      allow read: if isAdmin();
+      
+      // No update or delete (immutable analytics data)
+      allow update, delete: if false;
+    }
+    
+    // Enhanced analytics collections
+    match /analytics_pageviews/{viewId} {
+      allow read: if isAdmin();
+      allow create: if request.resource.data.timestamp == request.time;
+      allow update, delete: if false;
+    }
+    
+    match /analytics_realtime_visitors/{visitorId} {
+      allow read: if isAdmin();
+      allow create, update: if request.resource.data.sessionId is string;
+      allow delete: if isAdmin();
+    }
+    
+    match /analytics_article_performance/{articleId} {
+      allow read: if isAdmin();
+      allow create, update: if request.resource.data.articleId is string;
+      allow delete: if false;
+    }
+    
+    match /analytics_trending/{articleId} {
+      allow read: if isAdmin();
+      allow create, update: if request.resource.data.articleId is string;
+      allow delete: if false;
+    }
+    
+    match /analytics_sessions/{sessionId} {
+      allow read: if isAdmin();
+      allow create, update: if request.resource.data.sessionId is string;
+      allow delete: if false;
+    }
+    
+    // Deny all other access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
