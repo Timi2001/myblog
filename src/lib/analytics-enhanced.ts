@@ -18,6 +18,7 @@ import {
   writeBatch
 } from 'firebase/firestore';
 import { AnalyticsDocumentManager } from './analytics-utils';
+import { executeAnalyticsOperation } from './analytics-retry';
 
 // Enhanced analytics interfaces
 export interface PageViewEvent {
@@ -156,38 +157,40 @@ export class EnhancedAnalyticsService {
 
   // Update real-time visitor data
   async updateRealTimeVisitor(data: Omit<PageViewEvent, 'id' | 'timestamp'>): Promise<void> {
-    try {
-      // Use sessionId as document ID for consistent access
-      const visitorDocRef = doc(this.realTimeVisitorsCollection, data.sessionId);
-      
-      // Ensure the document exists with proper initialization
-      const wasCreated = await AnalyticsDocumentManager.ensureRealTimeVisitorExists(data.sessionId, {
-        userId: data.userId,
-        currentPage: data.page,
-        country: data.country,
-        device: data.device,
-        browser: data.browser,
-        referrer: data.referrer,
-      });
-      
-      // Update the visitor data
-      const updateData: any = {
-        currentPage: data.page,
-        lastSeen: serverTimestamp(),
-      };
-      
-      // Only increment page views if this is an existing session
-      if (!wasCreated) {
-        updateData.pagesViewed = increment(1);
-      } else {
-        // For new sessions, set initial page view count
-        updateData.pagesViewed = 1;
-      }
-      
-      await updateDoc(visitorDocRef, updateData);
-    } catch (error) {
-      console.error('Error updating real-time visitor:', error);
-    }
+    await executeAnalyticsOperation(
+      async () => {
+        // Use sessionId as document ID for consistent access
+        const visitorDocRef = doc(this.realTimeVisitorsCollection, data.sessionId);
+        
+        // Ensure the document exists with proper initialization
+        const wasCreated = await AnalyticsDocumentManager.ensureRealTimeVisitorExists(data.sessionId, {
+          userId: data.userId,
+          currentPage: data.page,
+          country: data.country,
+          device: data.device,
+          browser: data.browser,
+          referrer: data.referrer,
+        });
+        
+        // Update the visitor data
+        const updateData: any = {
+          currentPage: data.page,
+          lastSeen: serverTimestamp(),
+        };
+        
+        // Only increment page views if this is an existing session
+        if (!wasCreated) {
+          updateData.pagesViewed = increment(1);
+        } else {
+          // For new sessions, set initial page view count
+          updateData.pagesViewed = 1;
+        }
+        
+        await updateDoc(visitorDocRef, updateData);
+      },
+      'realTimeVisitor',
+      { sessionId: data.sessionId, page: data.page }
+    );
   }
 
   // Update article performance metrics

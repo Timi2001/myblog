@@ -17,6 +17,7 @@ import {
   writeBatch
 } from 'firebase/firestore';
 import { AnalyticsDocumentManager } from './analytics-utils';
+import { executeAnalyticsOperation } from './analytics-retry';
 
 // Analytics data interfaces
 export interface PageView {
@@ -79,47 +80,51 @@ export class AnalyticsDataService {
 
   // Track page view
   async trackPageView(data: Omit<PageView, 'id' | 'timestamp'>): Promise<void> {
-    try {
-      await addDoc(this.pageViewsCollection, {
-        ...data,
-        timestamp: serverTimestamp(),
-      });
+    await executeAnalyticsOperation(
+      async () => {
+        await addDoc(this.pageViewsCollection, {
+          ...data,
+          timestamp: serverTimestamp(),
+        });
 
-      // Update daily summary
-      await this.updateDailySummary(data.page);
-    } catch (error) {
-      console.error('Error tracking page view:', error);
-    }
+        // Update daily summary
+        await this.updateDailySummary(data.page);
+      },
+      'pageView',
+      { page: data.page, sessionId: data.sessionId }
+    );
   }
 
   // Track article view
   async trackArticleView(articleId: string, timeSpent?: number): Promise<void> {
-    try {
-      // Ensure the document exists before updating
-      await AnalyticsDocumentManager.ensureLegacyArticleAnalyticsExists(articleId);
-      
-      const articleDocRef = doc(this.articleAnalyticsCollection, articleId);
-      const articleDoc = await getDoc(articleDocRef);
+    await executeAnalyticsOperation(
+      async () => {
+        // Ensure the document exists before updating
+        await AnalyticsDocumentManager.ensureLegacyArticleAnalyticsExists(articleId);
+        
+        const articleDocRef = doc(this.articleAnalyticsCollection, articleId);
+        const articleDoc = await getDoc(articleDocRef);
 
-      if (articleDoc.exists()) {
-        const updateData: any = {
-          views: increment(1),
-          lastUpdated: serverTimestamp(),
-        };
+        if (articleDoc.exists()) {
+          const updateData: any = {
+            views: increment(1),
+            lastUpdated: serverTimestamp(),
+          };
 
-        if (timeSpent) {
-          const currentData = articleDoc.data();
-          const currentAverage = currentData.averageTimeSpent || 0;
-          const currentViews = currentData.views || 0;
-          const newAverage = ((currentAverage * currentViews) + timeSpent) / (currentViews + 1);
-          updateData.averageTimeSpent = newAverage;
+          if (timeSpent) {
+            const currentData = articleDoc.data();
+            const currentAverage = currentData.averageTimeSpent || 0;
+            const currentViews = currentData.views || 0;
+            const newAverage = ((currentAverage * currentViews) + timeSpent) / (currentViews + 1);
+            updateData.averageTimeSpent = newAverage;
+          }
+
+          await updateDoc(articleDocRef, updateData);
         }
-
-        await updateDoc(articleDocRef, updateData);
-      }
-    } catch (error) {
-      console.error('Error tracking article view:', error);
-    }
+      },
+      'pageView',
+      { articleId, timeSpent }
+    );
   }
 
   // Start user session
@@ -362,22 +367,24 @@ export class AnalyticsDataService {
 
   // Update daily summary (for performance optimization)
   private async updateDailySummary(page: string): Promise<void> {
-    try {
-      const today = new Date().toISOString().split('T')[0];
-      
-      // Ensure the daily summary document exists
-      await AnalyticsDocumentManager.ensureDailySummaryExists(today);
-      
-      const summaryDocRef = doc(db, 'analytics_daily_summary', today);
-      
-      await updateDoc(summaryDocRef, {
-        [`pages.${page.replace(/[.#$/[\]]/g, '_')}`]: increment(1),
-        totalViews: increment(1),
-        lastUpdated: serverTimestamp(),
-      });
-    } catch (error) {
-      console.error('Error updating daily summary:', error);
-    }
+    await executeAnalyticsOperation(
+      async () => {
+        const today = new Date().toISOString().split('T')[0];
+        
+        // Ensure the daily summary document exists
+        await AnalyticsDocumentManager.ensureDailySummaryExists(today);
+        
+        const summaryDocRef = doc(db, 'analytics_daily_summary', today);
+        
+        await updateDoc(summaryDocRef, {
+          [`pages.${page.replace(/[.#$/[\]]/g, '_')}`]: increment(1),
+          totalViews: increment(1),
+          lastUpdated: serverTimestamp(),
+        });
+      },
+      'dailySummary',
+      { page, date: new Date().toISOString().split('T')[0] }
+    );
   }
 
   // Batch update daily summaries for multiple operations

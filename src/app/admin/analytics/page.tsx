@@ -2,6 +2,7 @@
 
 import { Suspense } from 'react';
 import dynamic from 'next/dynamic';
+import { AnalyticsErrorBoundary } from '@/components/analytics/analytics-error-boundary';
 
 // Dynamically import the analytics dashboard to avoid SSR issues
 const ComprehensiveAnalyticsDashboard = dynamic(
@@ -33,18 +34,20 @@ export default function AdminAnalyticsPage() {
       </div>
 
       {/* Comprehensive Analytics Dashboard */}
-      <Suspense fallback={
-        <div className="animate-pulse">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="bg-gray-200 h-24 rounded-lg"></div>
-            ))}
+      <AnalyticsErrorBoundary>
+        <Suspense fallback={
+          <div className="animate-pulse">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="bg-gray-200 h-24 rounded-lg"></div>
+              ))}
+            </div>
+            <div className="bg-gray-200 h-64 rounded-lg"></div>
           </div>
-          <div className="bg-gray-200 h-64 rounded-lg"></div>
-        </div>
-      }>
-        <ComprehensiveAnalyticsDashboard />
-      </Suspense>
+        }>
+          <ComprehensiveAnalyticsDashboard />
+        </Suspense>
+      </AnalyticsErrorBoundary>
     </div>
   );
 }
