@@ -90,3 +90,5 @@ Your blog has all the features implemented:
 - Comment system
 
 **Deploy now and start blogging!** 🚀
+
+_Last updated: November 6, 2025_
