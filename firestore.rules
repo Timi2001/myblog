@@ -198,6 +198,12 @@ service cloud.firestore {
       allow delete: if false;
     }
     
+    // Health check collection
+    match /health/{healthId} {
+      allow read: if true; // Allow public read for health checks
+      allow write: if false; // No writes needed
+    }
+    
     // Deny all other access
     match /{document=**} {
       allow read, write: if false;

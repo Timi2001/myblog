@@ -33,11 +33,14 @@ export async function GET(request: NextRequest) {
 
     // Check database connectivity
     try {
-      // Try to read a document from Firestore
-      const testDoc = doc(db, 'health', 'check');
-      await getDoc(testDoc);
+      // Try to read from a collection we know exists and has proper rules
+      const { collection, getDocs, limit, query } = await import('firebase/firestore');
+      const articlesRef = collection(db, 'articles');
+      const q = query(articlesRef, limit(1));
+      await getDocs(q);
       health.checks.database = 'healthy';
     } catch (error) {
+      console.error('Database health check failed:', error);
       health.checks.database = 'unhealthy';
       health.status = 'degraded';
     }
