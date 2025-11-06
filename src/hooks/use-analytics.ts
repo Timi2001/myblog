@@ -84,7 +84,7 @@ export function useAnalytics() {
       analyticsDataService.startSession({
         sessionId: sessionIdRef.current,
         pageViews: 0,
-        referrer: document.referrer || undefined,
+        referrer: document.referrer || '',
         country: getCountry(),
         device: getDeviceType(),
         browser: getBrowserName(),
@@ -105,7 +105,7 @@ export function useAnalytics() {
     analyticsDataService.trackPageView({
       page: pathname,
       title: pageTitle,
-      referrer: document.referrer || undefined,
+      referrer: document.referrer || '',
       userAgent: navigator.userAgent,
       sessionId: sessionIdRef.current!,
       country: getCountry(),
@@ -117,7 +117,7 @@ export function useAnalytics() {
     enhancedAnalyticsService.trackPageView({
       page: pathname,
       title: pageTitle,
-      referrer: document.referrer || undefined,
+      referrer: document.referrer || '',
       userAgent: navigator.userAgent,
       sessionId: sessionIdRef.current!,
       country: getCountry(),

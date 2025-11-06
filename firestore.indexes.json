@@ -1,18 +1,42 @@
 {
   "indexes": [
     {
+      "collectionGroup": "analytics_pageviews",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "articleId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "timestamp",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
       "collectionGroup": "articles",
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "status",
+          "fieldPath": "categoryId",
           "order": "ASCENDING"
         },
         {
           "fieldPath": "publishedAt",
           "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
         }
-      ]
+      ],
+      "density": "SPARSE_ALL"
     },
     {
       "collectionGroup": "articles",
@@ -29,8 +53,32 @@
         {
           "fieldPath": "publishedAt",
           "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
         }
-      ]
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "articles",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "publishedAt",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
     },
     {
       "collectionGroup": "articles",
@@ -47,22 +95,13 @@
         {
           "fieldPath": "publishedAt",
           "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "articles",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "categoryId",
-          "order": "ASCENDING"
         },
         {
-          "fieldPath": "publishedAt",
+          "fieldPath": "__name__",
           "order": "DESCENDING"
         }
-      ]
+      ],
+      "density": "SPARSE_ALL"
     },
     {
       "collectionGroup": "articles",
@@ -75,8 +114,13 @@
         {
           "fieldPath": "publishedAt",
           "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
         }
-      ]
+      ],
+      "density": "SPARSE_ALL"
     },
     {
       "collectionGroup": "articles",
@@ -89,8 +133,13 @@
         {
           "fieldPath": "publishedAt",
           "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
         }
-      ]
+      ],
+      "density": "SPARSE_ALL"
     },
     {
       "collectionGroup": "comments",
@@ -107,8 +156,13 @@
         {
           "fieldPath": "createdAt",
           "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
         }
-      ]
+      ],
+      "density": "SPARSE_ALL"
     },
     {
       "collectionGroup": "pageViews",
@@ -121,8 +175,13 @@
         {
           "fieldPath": "timestamp",
           "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
         }
-      ]
+      ],
+      "density": "SPARSE_ALL"
     },
     {
       "collectionGroup": "subscribers",
@@ -135,104 +194,14 @@
         {
           "fieldPath": "subscribedAt",
           "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "analytics_pageviews",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "articleId",
-          "order": "ASCENDING"
         },
         {
-          "fieldPath": "timestamp",
+          "fieldPath": "__name__",
           "order": "DESCENDING"
         }
-      ]
-    },
-    {
-      "collectionGroup": "analytics_pageviews",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "timestamp",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "analytics_realtime_visitors",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "lastSeen",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "analytics_article_performance",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "views",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "analytics_trending",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "engagementScore",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "analytics_trending",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "views24h",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "analytics_trending",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "views7d",
-          "order": "DESCENDING"
-        }
-      ]
+      ],
+      "density": "SPARSE_ALL"
     }
   ],
-  "fieldOverrides": [
-    {
-      "collectionGroup": "articles",
-      "fieldPath": "content",
-      "indexes": [
-        {
-          "order": "ASCENDING",
-          "queryScope": "COLLECTION"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "articles", 
-      "fieldPath": "title",
-      "indexes": [
-        {
-          "order": "ASCENDING",
-          "queryScope": "COLLECTION"
-        }
-      ]
-    }
-  ]
+  "fieldOverrides": []
 }

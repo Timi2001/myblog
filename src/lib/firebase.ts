@@ -23,6 +23,8 @@ export const auth = getAuth(app);
 export const storage = getStorage(app);
 
 // Initialize Analytics (only on client side)
-export const analytics = typeof window !== 'undefined' ? getAnalytics(app) : null;
+export const analytics = typeof window !== 'undefined' && firebaseConfig.measurementId && firebaseConfig.measurementId !== 'G-XXXXXXXXXX' 
+  ? getAnalytics(app) 
+  : null;
 
 export default app;
