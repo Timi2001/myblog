@@ -8,6 +8,7 @@ export async function middleware(request: NextRequest) {
     '/admin',
     '/admin/setup', 
     '/admin/simple-login',
+    '/admin/direct-login',
     '/admin/bypass',
     '/admin/simple-test',
     '/admin/debug'

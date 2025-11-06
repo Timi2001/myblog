@@ -1,88 +1,70 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { signInAdmin, onAuthStateChange } from '@/lib/auth';
-import { User } from 'firebase/auth';
+import { useState } from 'react';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 
-export default function AdminLoginPage() {
+export default function DirectAdminLogin() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [user, setUser] = useState<User | null>(null);
-  const router = useRouter();
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChange((user) => {
-      setUser(user);
-      if (user) {
-        // Redirect to admin dashboard if already authenticated
-        router.push('/admin/dashboard');
-      }
-    });
-
-    return () => unsubscribe();
-  }, [router]);
+  const [success, setSuccess] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setSuccess('');
 
     try {
-      await signInAdmin(email, password);
-      // Redirect will happen automatically via useEffect
+      console.log('🔐 Attempting direct Firebase login with:', email);
+      
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      
+      console.log('✅ Login successful:', userCredential.user.email);
+      console.log('🎯 User UID:', userCredential.user.uid);
+      
+      setSuccess(`🎉 Login successful! Welcome ${userCredential.user.email}`);
+      
+      // Get the ID token for debugging
+      const token = await userCredential.user.getIdToken();
+      console.log('🔑 ID Token received (length):', token.length);
+      
+      // Set cookie manually
+      document.cookie = `auth-token=${token}; path=/; max-age=3600; secure; samesite=strict`;
+      
+      // Manual redirect after 3 seconds
+      setTimeout(() => {
+        console.log('🚀 Redirecting to dashboard...');
+        window.location.href = '/admin/dashboard';
+      }, 3000);
+      
     } catch (error: any) {
-      console.error('Login error:', error);
-      setError(getErrorMessage(error.code));
+      console.error('❌ Login error:', error);
+      console.error('Error code:', error.code);
+      console.error('Error message:', error.message);
+      setError(`Login failed: ${error.message}`);
     } finally {
       setLoading(false);
     }
   };
-
-  const getErrorMessage = (errorCode: string): string => {
-    switch (errorCode) {
-      case 'auth/user-not-found':
-        return 'No admin account found with this email address.';
-      case 'auth/wrong-password':
-        return 'Incorrect password. Please try again.';
-      case 'auth/invalid-email':
-        return 'Please enter a valid email address.';
-      case 'auth/too-many-requests':
-        return 'Too many failed attempts. Please try again later.';
-      case 'auth/network-request-failed':
-        return 'Network error. Please check your connection and try again.';
-      default:
-        return 'Login failed. Please check your credentials and try again.';
-    }
-  };
-
-  // Show loading state while checking authentication (but with timeout)
-  if (loading && !error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="text-sm text-gray-600">Loading authentication...</p>
-          <p className="text-xs text-gray-500">
-            If this takes too long, <a href="/admin/simple-login" className="text-blue-600 hover:underline">try simple login</a>
-          </p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Admin Login
+            🔐 Direct Admin Login
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Sign in to access the admin dashboard
+            Direct Firebase authentication - no auth context, no CSP blocking
           </p>
+          <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+            <p className="text-xs text-blue-800">
+              ✅ This page completely bypasses auth context and CSP issues
+            </p>
+          </div>
         </div>
         
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
@@ -125,7 +107,14 @@ export default function AdminLoginPage() {
 
           {error && (
             <div className="rounded-md bg-red-50 p-4">
-              <div className="text-sm text-red-700">{error}</div>
+              <div className="text-sm text-red-700">❌ {error}</div>
+            </div>
+          )}
+
+          {success && (
+            <div className="rounded-md bg-green-50 p-4">
+              <div className="text-sm text-green-700">✅ {success}</div>
+              <div className="text-xs text-green-600 mt-1">Redirecting to dashboard...</div>
             </div>
           )}
 
@@ -141,11 +130,33 @@ export default function AdminLoginPage() {
                   Signing in...
                 </div>
               ) : (
-                'Sign in'
+                '🚀 Sign in'
               )}
             </button>
           </div>
+          
+          <div className="text-center space-y-2">
+            <p className="text-sm text-gray-600">
+              Debug pages:{' '}
+              <a href="/admin/bypass" className="font-medium text-blue-600 hover:text-blue-500">
+                Bypass
+              </a>
+              {' | '}
+              <a href="/admin/debug" className="font-medium text-blue-600 hover:text-blue-500">
+                Debug
+              </a>
+            </p>
+          </div>
         </form>
+        
+        <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+          <h3 className="text-sm font-medium text-gray-900 mb-2">🔧 Environment Check</h3>
+          <div className="text-xs text-gray-600 space-y-1">
+            <p><strong>Project ID:</strong> {process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || '❌ Not set'}</p>
+            <p><strong>Auth Domain:</strong> {process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || '❌ Not set'}</p>
+            <p><strong>API Key:</strong> {process.env.NEXT_PUBLIC_FIREBASE_API_KEY ? '✅ Set' : '❌ Not set'}</p>
+          </div>
+        </div>
       </div>
     </div>
   );
