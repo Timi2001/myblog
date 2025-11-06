@@ -1,6 +1,23 @@
-'use client';
+import { Suspense } from 'react';
+import dynamic from 'next/dynamic';
 
-import { ComprehensiveAnalyticsDashboard } from '@/components/admin/comprehensive-analytics-dashboard';
+// Dynamically import the analytics dashboard to avoid SSR issues
+const ComprehensiveAnalyticsDashboard = dynamic(
+  () => import('@/components/admin/comprehensive-analytics-dashboard').then(mod => ({ default: mod.ComprehensiveAnalyticsDashboard })),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="animate-pulse">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="bg-gray-200 h-24 rounded-lg"></div>
+          ))}
+        </div>
+        <div className="bg-gray-200 h-64 rounded-lg"></div>
+      </div>
+    )
+  }
+);
 
 export default function AdminAnalyticsPage() {
   return (
@@ -14,7 +31,18 @@ export default function AdminAnalyticsPage() {
       </div>
 
       {/* Comprehensive Analytics Dashboard */}
-      <ComprehensiveAnalyticsDashboard />
+      <Suspense fallback={
+        <div className="animate-pulse">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="bg-gray-200 h-24 rounded-lg"></div>
+            ))}
+          </div>
+          <div className="bg-gray-200 h-64 rounded-lg"></div>
+        </div>
+      }>
+        <ComprehensiveAnalyticsDashboard />
+      </Suspense>
     </div>
   );
 }

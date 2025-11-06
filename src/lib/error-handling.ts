@@ -199,21 +199,23 @@ export function withErrorBoundary<T extends Record<string, any>>(
 ): React.ComponentType<T> {
   return function WrappedComponent(props: T) {
     try {
-      return <Component {...props} />;
+      return React.createElement(Component, props);
     } catch (error) {
       handleError(error as Error, { component: Component.name, props });
       
       // Return fallback UI
-      return (
-        <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-          <h3 className="text-red-800 dark:text-red-200 font-medium">
-            Something went wrong
-          </h3>
-          <p className="text-red-600 dark:text-red-300 text-sm mt-1">
-            Please try refreshing the page or contact support if the problem persists.
-          </p>
-        </div>
-      );
+      return React.createElement('div', {
+        className: "p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
+      }, [
+        React.createElement('h3', {
+          key: 'title',
+          className: "text-red-800 dark:text-red-200 font-medium"
+        }, 'Something went wrong'),
+        React.createElement('p', {
+          key: 'message',
+          className: "text-red-600 dark:text-red-300 text-sm mt-1"
+        }, 'Please try refreshing the page or contact support if the problem persists.')
+      ]);
     }
   };
 }

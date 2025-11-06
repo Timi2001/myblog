@@ -7,16 +7,27 @@ export async function GET(request: NextRequest) {
   
   try {
     // Basic health check
-    const health = {
+    const health: {
+      status: string;
+      timestamp: string;
+      version: string;
+      environment: string;
+      uptime: number;
+      checks: {
+        database: string;
+        memory: string | { status: string; used: string; total: string; percentage: number };
+        disk: string;
+      };
+    } = {
       status: 'healthy',
       timestamp: new Date().toISOString(),
       version: process.env.npm_package_version || '1.0.0',
       environment: process.env.NODE_ENV || 'development',
       uptime: process.uptime(),
       checks: {
-        database: 'unknown' as string,
-        memory: 'unknown' as string | { status: string; used: string; total: string; percentage: number },
-        disk: 'unknown' as string,
+        database: 'unknown',
+        memory: 'unknown',
+        disk: 'unknown',
       },
     };
 
