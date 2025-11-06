@@ -1,11 +1,6 @@
-import Link from 'next/link';
-import { Metadata } from 'next';
+'use client';
 
-export const metadata: Metadata = {
-  title: 'Page Not Found | My Personal Blog',
-  description: 'The page you are looking for could not be found.',
-  robots: 'noindex, nofollow',
-};
+import Link from 'next/link';
 
 export default function NotFound() {
   return (
