@@ -9,6 +9,7 @@ export async function middleware(request: NextRequest) {
     '/admin/setup', 
     '/admin/simple-login',
     '/admin/direct-login',
+    '/admin/direct-dashboard',
     '/admin/bypass',
     '/admin/simple-test',
     '/admin/debug'

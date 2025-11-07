@@ -36,8 +36,8 @@ export default function DirectAdminLogin() {
       
       // Manual redirect after 3 seconds
       setTimeout(() => {
-        console.log('🚀 Redirecting to dashboard...');
-        window.location.href = '/admin/dashboard';
+        console.log('🚀 Redirecting to direct dashboard...');
+        window.location.href = '/admin/direct-dashboard';
       }, 3000);
       
     } catch (error: any) {

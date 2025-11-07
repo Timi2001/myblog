@@ -19,6 +19,10 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     if (!loading && !user && pathname !== '/admin') {
       // Redirect to login if not authenticated and not on login page
       router.push('/admin');
+    } else if (!loading && user && pathname === '/admin') {
+      // Redirect to dashboard if authenticated and on login page
+      console.log('✅ User authenticated, redirecting to dashboard');
+      router.push('/admin/dashboard');
     }
   }, [user, loading, router, pathname]);
 
