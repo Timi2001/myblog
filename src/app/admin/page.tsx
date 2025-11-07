@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { signInAdmin, onAuthStateChange } from '@/lib/auth';
+import { useAuth } from '@/contexts/auth-context';
 import { User } from 'firebase/auth';
 
 export default function AdminLoginPage() {
@@ -13,6 +14,7 @@ export default function AdminLoginPage() {
   const [success, setSuccess] = useState('');
   const [user, setUser] = useState<User | null>(null);
   const router = useRouter();
+  const { refreshToken } = useAuth();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChange((user) => {
@@ -37,12 +39,20 @@ export default function AdminLoginPage() {
       
       setSuccess(`Login successful! Welcome ${userCredential.email}`);
       setError(''); // Clear any previous errors
+
+      // Ensure auth-token cookie is set before redirect
+      try {
+        await refreshToken();
+        console.log('🔐 Token refreshed and cookie set, proceeding to dashboard');
+      } catch (e) {
+        console.warn('⚠️ Failed to refresh token before redirect, proceeding anyway');
+      }
       
       // Manual redirect after showing success
       setTimeout(() => {
         console.log('🚀 Manually redirecting to dashboard...');
         router.push('/admin/dashboard');
-      }, 2000);
+      }, 500);
       
     } catch (error: any) {
       console.error('Login error:', error);

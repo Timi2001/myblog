@@ -26,6 +26,12 @@ export async function POST(request: Request) {
     const decoded = await verifyIdToken(token);
     return NextResponse.json({ valid: true, uid: decoded.uid, decoded }, { status: 200 });
   } catch (err: any) {
+    // Safe logging for server diagnostics
+    console.error('Auth verify failed:', {
+      message: err?.message,
+      code: err?.code,
+      name: err?.name,
+    });
     return NextResponse.json({ valid: false, error: err?.message || 'Invalid token' }, { status: 401 });
   }
 }
