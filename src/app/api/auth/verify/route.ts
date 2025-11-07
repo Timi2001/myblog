@@ -1,114 +1,31 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { verifyIdToken } from '@/lib/firebase-admin';
 
-// Firebase Admin initialization helper
-function getFirebaseAuth() {
+export async function POST(request: Request) {
   try {
-    const { getAuth } = require('firebase-admin/auth');
-    const { initializeApp, getApps, cert } = require('firebase-admin/app');
-    
-    if (!getApps().length) {
-      initializeApp({
-        credential: cert({
-          projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-          privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-        }),
-      });
+    const contentType = request.headers.get('content-type') || '';
+    let token: string | undefined;
+
+    if (contentType.includes('application/json')) {
+      const body = await request.json().catch(() => ({} as any));
+      token = body?.token;
     }
-    
-    return getAuth();
-  } catch (error) {
-    console.error('Firebase Admin initialization error:', error);
-    return null;
-  }
-}
-
-export async function POST(request: NextRequest) {
-  try {
-    const { token } = await request.json();
 
     if (!token) {
-      return NextResponse.json(
-        { error: 'No token provided' },
-        { status: 401 }
-      );
+      // Also allow Authorization header as a fallback
+      const authHeader = request.headers.get('authorization');
+      if (authHeader?.startsWith('Bearer ')) {
+        token = authHeader.slice(7);
+      }
     }
 
-    // Check if Firebase Admin is properly configured
-    if (!process.env.FIREBASE_CLIENT_EMAIL || !process.env.FIREBASE_PRIVATE_KEY) {
-      return NextResponse.json(
-        { error: 'Firebase Admin not configured', valid: false },
-        { status: 500 }
-      );
+    if (!token) {
+      return NextResponse.json({ error: 'Token is required' }, { status: 400 });
     }
 
-    const auth = getFirebaseAuth();
-    if (!auth) {
-      return NextResponse.json(
-        { error: 'Firebase Admin initialization failed', valid: false },
-        { status: 500 }
-      );
-    }
-
-    // Verify the Firebase ID token
-    const decodedToken = await auth.verifyIdToken(token);
-    
-    return NextResponse.json({
-      valid: true,
-      uid: decodedToken.uid,
-      email: decodedToken.email,
-    });
-  } catch (error) {
-    console.error('Token verification error:', error);
-    return NextResponse.json(
-      { error: 'Invalid token', valid: false },
-      { status: 401 }
-    );
-  }
-}
-
-export async function GET(request: NextRequest) {
-  try {
-    const authHeader = request.headers.get('authorization');
-    
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json(
-        { error: 'No valid authorization header' },
-        { status: 401 }
-      );
-    }
-
-    const token = authHeader.split('Bearer ')[1];
-    
-    // Check if Firebase Admin is properly configured
-    if (!process.env.FIREBASE_CLIENT_EMAIL || !process.env.FIREBASE_PRIVATE_KEY) {
-      return NextResponse.json(
-        { error: 'Firebase Admin not configured', valid: false },
-        { status: 500 }
-      );
-    }
-
-    const auth = getFirebaseAuth();
-    if (!auth) {
-      return NextResponse.json(
-        { error: 'Firebase Admin initialization failed', valid: false },
-        { status: 500 }
-      );
-    }
-    
-    // Verify the Firebase ID token
-    const decodedToken = await auth.verifyIdToken(token);
-    
-    return NextResponse.json({
-      valid: true,
-      uid: decodedToken.uid,
-      email: decodedToken.email,
-    });
-  } catch (error) {
-    console.error('Token verification error:', error);
-    return NextResponse.json(
-      { error: 'Invalid token', valid: false },
-      { status: 401 }
-    );
+    const decoded = await verifyIdToken(token);
+    return NextResponse.json({ valid: true, uid: decoded.uid, decoded }, { status: 200 });
+  } catch (err: any) {
+    return NextResponse.json({ valid: false, error: err?.message || 'Invalid token' }, { status: 401 });
   }
 }

@@ -70,22 +70,22 @@ export async function verifyAuthToken(): Promise<boolean> {
 export async function verifyAdminAuth(request: Request): Promise<{ success: boolean; user?: any; error?: string }> {
   try {
     const authHeader = request.headers.get('authorization');
-    
+
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return { success: false, error: 'No authorization token provided' };
     }
 
-    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
-    
-    // For now, we'll do a basic token validation
-    // In a production environment, you'd want to verify the Firebase ID token
+    const token = authHeader.substring(7);
+
     if (!token) {
       return { success: false, error: 'Invalid token' };
     }
 
-    // TODO: Implement proper Firebase Admin SDK token verification
-    // For now, we'll assume the token is valid if it exists
-    return { success: true, user: { token } };
+    // Properly verify the Firebase ID token using Admin SDK
+    const { verifyIdToken } = await import('./firebase-admin');
+    const decoded = await verifyIdToken(token);
+
+    return { success: true, user: decoded };
   } catch (error) {
     console.error('Error verifying admin auth:', error);
     return { success: false, error: 'Authentication verification failed' };
