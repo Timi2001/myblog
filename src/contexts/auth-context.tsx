@@ -24,12 +24,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const newToken = await getAuthToken();
         setToken(newToken);
         
-        // Store token in cookie for middleware
-        if (newToken) {
-          document.cookie = `auth-token=${newToken}; path=/; max-age=3600; secure; samesite=strict`;
-        } else {
-          document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-        }
+        // Use the API route to set the cookie
+        await fetch('/api/auth/set-token', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ token: newToken }),
+        });
+
       } catch (error) {
         console.error('Error refreshing token:', error);
       }
