@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { siteConfigService } from '@/lib/firestore';
+import { verifyAuth } from '@/lib/auth-server';
 
 export async function GET(request: NextRequest) {
   try {
+    const decodedToken = await verifyAuth();
+    if (!decodedToken) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
     const branding = await siteConfigService.getBranding();
     
     return NextResponse.json({
@@ -20,6 +26,11 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
+    const decodedToken = await verifyAuth();
+    if (!decodedToken) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     
     // Validate required fields
