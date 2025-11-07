@@ -10,16 +10,17 @@ export default function AdminLoginPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [user, setUser] = useState<User | null>(null);
   const router = useRouter();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChange((user) => {
+      console.log('🔍 Admin page auth state changed:', user?.email || 'No user');
       setUser(user);
-      if (user) {
-        // Redirect to admin dashboard if already authenticated
-        router.push('/admin/dashboard');
-      }
+      
+      // Don't auto-redirect, let user manually navigate after login
+      // This prevents redirect loops
     });
 
     return () => unsubscribe();
@@ -31,8 +32,18 @@ export default function AdminLoginPage() {
     setError('');
 
     try {
-      await signInAdmin(email, password);
-      // Redirect will happen automatically via useEffect
+      const userCredential = await signInAdmin(email, password);
+      console.log('✅ Login successful in admin page:', userCredential.email);
+      
+      setSuccess(`Login successful! Welcome ${userCredential.email}`);
+      setError(''); // Clear any previous errors
+      
+      // Manual redirect after showing success
+      setTimeout(() => {
+        console.log('🚀 Manually redirecting to dashboard...');
+        router.push('/admin/dashboard');
+      }, 2000);
+      
     } catch (error: any) {
       console.error('Login error:', error);
       setError(getErrorMessage(error.code));
@@ -126,6 +137,13 @@ export default function AdminLoginPage() {
           {error && (
             <div className="rounded-md bg-red-50 p-4">
               <div className="text-sm text-red-700">{error}</div>
+            </div>
+          )}
+
+          {success && (
+            <div className="rounded-md bg-green-50 p-4">
+              <div className="text-sm text-green-700">{success}</div>
+              <div className="text-xs text-green-600 mt-1">Redirecting to dashboard...</div>
             </div>
           )}
 

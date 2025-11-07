@@ -16,13 +16,18 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const pathname = usePathname();
 
   useEffect(() => {
-    if (!loading && !user && pathname !== '/admin') {
-      // Redirect to login if not authenticated and not on login page
-      router.push('/admin');
-    } else if (!loading && user && pathname === '/admin') {
-      // Redirect to dashboard if authenticated and on login page
-      console.log('✅ User authenticated, redirecting to dashboard');
-      router.push('/admin/dashboard');
+    console.log('🔍 AdminLayout - Auth state:', { user: !!user, loading, pathname });
+    
+    if (!loading) {
+      if (!user && pathname !== '/admin') {
+        // Redirect to login if not authenticated and not on login page
+        console.log('❌ No user, redirecting to login');
+        router.push('/admin');
+      } else if (user && pathname === '/admin') {
+        // Redirect to dashboard if authenticated and on login page
+        console.log('✅ User authenticated, redirecting to dashboard');
+        router.push('/admin/dashboard');
+      }
     }
   }, [user, loading, router, pathname]);
 

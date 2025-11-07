@@ -58,7 +58,8 @@
     - Ensure admin panel continues functioning during analytics service outages
     - _Requirements: 5.1, 5.5_
 
-- [x] 4. Fix X-Frame-Options security header configuration
+- [ ] 4. Fix X-Frame-Options security header configuration
+
 
 
   - Remove X-Frame-Options meta tag from HTML head
