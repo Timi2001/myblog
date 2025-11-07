@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { categoryService } from '@/lib/firestore';
 import { UpdateCategoryInput } from '@/types';
+import { verifyAuth } from '@/lib/auth-server';
 import { slugify } from '@/utils/slugify';
 
 // GET /api/admin/categories/[id] - Get single category by ID
@@ -9,6 +10,11 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const decodedToken = await verifyAuth();
+    if (!decodedToken) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { id } = await params;
     const categories = await categoryService.getAll();
     const foundCategory = categories.find(c => c.id === id);
@@ -45,6 +51,11 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const decodedToken = await verifyAuth();
+    if (!decodedToken) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { id } = await params;
     const body: Partial<UpdateCategoryInput> = await request.json();
     
@@ -113,6 +124,11 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const decodedToken = await verifyAuth();
+    if (!decodedToken) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { id } = await params;
     // Check if category exists
     const categories = await categoryService.getAll();

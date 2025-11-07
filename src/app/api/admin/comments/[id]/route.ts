@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { commentService } from '@/lib/firestore';
+import { verifyAuth } from '@/lib/auth-server';
 
 interface RouteParams {
   params: Promise<{
@@ -9,6 +10,11 @@ interface RouteParams {
 
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
+    const decodedToken = await verifyAuth();
+    if (!decodedToken) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { id } = await params;
     const body = await request.json();
     
@@ -51,6 +57,11 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
+    const decodedToken = await verifyAuth();
+    if (!decodedToken) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { id } = await params;
     
     // Get the comment first to get the articleId

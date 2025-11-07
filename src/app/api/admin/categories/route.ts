@@ -1,12 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { categoryService } from '@/lib/firestore';
 import { CreateCategoryInput } from '@/types';
+import { verifyAuth } from '@/lib/auth-server';
 import { serverTimestamp } from 'firebase/firestore';
 import { slugify } from '@/utils/slugify';
 
 // GET /api/admin/categories - List all categories
 export async function GET(request: NextRequest) {
   try {
+    const decodedToken = await verifyAuth();
+    if (!decodedToken) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
     const categories = await categoryService.getAll();
     
     return NextResponse.json({
@@ -28,6 +34,11 @@ export async function GET(request: NextRequest) {
 // POST /api/admin/categories - Create new category
 export async function POST(request: NextRequest) {
   try {
+    const decodedToken = await verifyAuth();
+    if (!decodedToken) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body: CreateCategoryInput = await request.json();
     
     // Validate required fields

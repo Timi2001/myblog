@@ -48,11 +48,8 @@ export default function AdminLoginPage() {
         console.warn('⚠️ Failed to refresh token before redirect, proceeding anyway');
       }
       
-      // Manual redirect after showing success
-      setTimeout(() => {
-        console.log('🚀 Manually redirecting to dashboard...');
-        router.push('/admin/dashboard');
-      }, 1000);
+      // Redirect to dashboard after token is set
+      router.push('/admin/dashboard');
       
     } catch (error: any) {
       console.error('Login error:', error);

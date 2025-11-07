@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { articleService } from '@/lib/firestore';
 import { UpdateArticleInput } from '@/types';
+import { verifyAuth } from '@/lib/auth-server';
 import { serverTimestamp } from 'firebase/firestore';
 import { slugify } from '@/utils/slugify';
 
@@ -10,6 +11,11 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const decodedToken = await verifyAuth();
+    if (!decodedToken) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { id } = await params;
     const article = await articleService.getAll();
     const foundArticle = article.find(a => a.id === id);
@@ -46,6 +52,11 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const decodedToken = await verifyAuth();
+    if (!decodedToken) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { id } = await params;
     const body: Partial<UpdateArticleInput> = await request.json();
     
@@ -141,6 +152,11 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const decodedToken = await verifyAuth();
+    if (!decodedToken) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { id } = await params;
     // Check if article exists
     const articles = await articleService.getAll();

@@ -1,12 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { articleService, categoryService } from '@/lib/firestore';
 import { CreateArticleInput } from '@/types';
+import { verifyAuth } from '@/lib/auth-server';
 import { serverTimestamp } from 'firebase/firestore';
 import { slugify } from '@/utils/slugify';
 
 // GET /api/admin/articles - List all articles (including drafts)
 export async function GET(request: NextRequest) {
   try {
+    const decodedToken = await verifyAuth();
+    if (!decodedToken) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status') as 'draft' | 'published' | 'archived' | null;
 
@@ -31,6 +37,11 @@ export async function GET(request: NextRequest) {
 // POST /api/admin/articles - Create new article
 export async function POST(request: NextRequest) {
   try {
+    const decodedToken = await verifyAuth();
+    if (!decodedToken) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body: CreateArticleInput = await request.json();
     
     // Validate required fields

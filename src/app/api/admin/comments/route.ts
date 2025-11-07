@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { commentService } from '@/lib/firestore';
+import { verifyAuth } from '@/lib/auth-server';
 
 export async function GET(request: NextRequest) {
   try {
+    const decodedToken = await verifyAuth();
+    if (!decodedToken) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
     const searchParams = request.nextUrl.searchParams;
     const status = searchParams.get('status') as 'pending' | 'approved' | 'rejected' | null;
     const articleId = searchParams.get('articleId');
