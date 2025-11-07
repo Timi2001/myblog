@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDocs, query, orderBy, limit, where, deleteDoc, doc } from 'firebase/firestore';
 import { subscribersCollection } from '@/lib/firestore-collections';
-import { verifyAuthToken } from '@/lib/auth';
+import { verifyAuth } from '@/lib/auth-server';
 
 export async function GET(request: NextRequest) {
   try {
     // Verify admin authentication
-    const isAuthenticated = await verifyAuthToken();
-    if (!isAuthenticated) {
+    const decodedToken = await verifyAuth();
+    if (!decodedToken) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
@@ -99,8 +99,8 @@ export async function GET(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     // Verify admin authentication
-    const isAuthenticated = await verifyAuthToken();
-    if (!isAuthenticated) {
+    const decodedToken = await verifyAuth();
+    if (!decodedToken) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }

@@ -1,24 +1,20 @@
-import { verifyIdToken } from './firebase-admin';
+import { cookies } from 'next/headers';
+import { admin } from '@/lib/firebase-admin';
+import { DecodedIdToken } from 'firebase-admin/auth';
 
-// Server-side auth verification for API routes only
-export async function verifyAdminAuth(request: Request): Promise<{ success: boolean; user?: any; error?: string }> {
+export async function verifyAuth(): Promise<DecodedIdToken | null> {
+  const cookieStore = cookies();
+  const token = cookieStore.get('auth-token')?.value;
+
+  if (!token) {
+    return null;
+  }
+
   try {
-    const authHeader = request.headers.get('authorization');
-
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return { success: false, error: 'No authorization token provided' };
-    }
-
-    const token = authHeader.substring(7);
-
-    if (!token) {
-      return { success: false, error: 'Invalid token' };
-    }
-
-    const decoded = await verifyIdToken(token);
-    return { success: true, user: decoded };
+    const decodedToken = await admin.auth().verifyIdToken(token);
+    return decodedToken;
   } catch (error) {
-    console.error('Error verifying admin auth:', error);
-    return { success: false, error: 'Authentication verification failed' };
+    console.error('Error verifying auth token:', error);
+    return null;
   }
 }
