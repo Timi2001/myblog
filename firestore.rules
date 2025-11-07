@@ -50,8 +50,8 @@ service cloud.firestore {
     
     // Articles collection
     match /articles/{articleId} {
-      // Public read access for published articles
-      allow read: if resource.data.status == 'published';
+      // Public read access for published articles, admin can read all
+      allow read: if resource.data.status == 'published' || isAdmin();
       
       // Admin-only write access with data validation
       allow create: if isAdmin() && 
@@ -68,8 +68,8 @@ service cloud.firestore {
       
       // Comments subcollection
       match /comments/{commentId} {
-        // Public read access for approved comments
-        allow read: if resource.data.status == 'approved';
+        // Public read access for approved comments, admin can read all
+        allow read: if resource.data.status == 'approved' || isAdmin();
         
         // Public create access with validation
         allow create: if isValidEmail(request.resource.data.authorEmail) &&
@@ -120,7 +120,7 @@ service cloud.firestore {
     // Subscribers collection
     match /subscribers/{subscriberId} {
       // No public read access (privacy protection)
-      allow read: if false;
+      allow read: if isAdmin();
       
       // Public create access for newsletter subscription with validation
       allow create: if isValidSubscriberData(request.resource.data) &&
@@ -132,7 +132,7 @@ service cloud.firestore {
                        request.resource.data.subscribedAt == resource.data.subscribedAt;
       
       // Admin access for subscriber management
-      allow read, update, delete: if isAdmin();
+      allow update, delete: if isAdmin();
     }
     
     // Site configuration collection

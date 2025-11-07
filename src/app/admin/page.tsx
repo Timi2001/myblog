@@ -52,7 +52,7 @@ export default function AdminLoginPage() {
       setTimeout(() => {
         console.log('🚀 Manually redirecting to dashboard...');
         router.push('/admin/dashboard');
-      }, 500);
+      }, 1000);
       
     } catch (error: any) {
       console.error('Login error:', error);
