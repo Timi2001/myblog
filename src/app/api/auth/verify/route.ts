@@ -1,37 +1,16 @@
-import { NextResponse } from 'next/server';
-import { verifyIdToken } from '@/lib/firebase-admin';
+import { NextRequest, NextResponse } from 'next/server';
+import { verifyAuth } from '@/lib/auth-server';
 
-export async function POST(request: Request) {
+export async function POST(req: NextRequest) {
   try {
-    const contentType = request.headers.get('content-type') || '';
-    let token: string | undefined;
+    const decodedToken = await verifyAuth();
 
-    if (contentType.includes('application/json')) {
-      const body = await request.json().catch(() => ({} as any));
-      token = body?.token;
+    if (!decodedToken) {
+      return new NextResponse(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
     }
 
-    if (!token) {
-      // Also allow Authorization header as a fallback
-      const authHeader = request.headers.get('authorization');
-      if (authHeader?.startsWith('Bearer ')) {
-        token = authHeader.slice(7);
-      }
-    }
-
-    if (!token) {
-      return NextResponse.json({ error: 'Token is required' }, { status: 400 });
-    }
-
-    const decoded = await verifyIdToken(token);
-    return NextResponse.json({ valid: true, uid: decoded.uid, decoded }, { status: 200 });
-  } catch (err: any) {
-    // Safe logging for server diagnostics
-    console.error('Auth verify failed:', {
-      message: err?.message,
-      code: err?.code,
-      name: err?.name,
-    });
-    return NextResponse.json({ valid: false, error: err?.message || 'Invalid token' }, { status: 401 });
+    return new NextResponse(JSON.stringify({ success: true, uid: decodedToken.uid }), { status: 200 });
+  } catch (error) {
+    return new NextResponse(JSON.stringify({ error: 'Internal Server Error' }), { status: 500 });
   }
 }

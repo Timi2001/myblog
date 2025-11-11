@@ -3,7 +3,7 @@ import { getAdminApp } from '@/lib/firebase-admin';
 import { DecodedIdToken } from 'firebase-admin/auth';
 
 export async function verifyAuth(): Promise<DecodedIdToken | null> {
-  const cookieStore = await cookies();
+  const cookieStore = cookies();
   const token = cookieStore.get('auth-token')?.value;
 
   if (!token) {
